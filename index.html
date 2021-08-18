@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Another simple example</title>
+        <style>
+            .audio {
+                height: 50px;
+                width: 400px;
+                display: flex;
+            }
+
+            .audio__wave-wrapper {
+                width: 100%;
+                padding: 10px 10px 10px 0px;
+            }
+
+            .wave-wrapper__wave {
+                height: 100%;
+                position: relative;
+                cursor: pointer;
+            }
+
+            .wave--slider {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                background-color: white;
+                opacity: 0.7;
+            }
+
+            .wave--svg {
+                width: 100%;
+                height: 100%;
+            }
+
+            .wave--svg > path {
+                stroke: #019fe6;
+                stroke-width: 2px;
+            }
+
+            .audio__button-wrapper {
+                display: flex;
+                min-width: 60px;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .button-wrapper__button {
+                cursor: pointer;
+                display: flex;
+                min-width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background-color: #019fe6;
+                position: relative;
+            }
+
+            .button--pause::before {
+                content: "";
+                position: absolute;
+                width: 3px;
+                height: 17px;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                border-left: 5px solid white;
+                border-right: 5px solid white;
+            }
+
+            .button--play::before {
+                content: "";
+                position: absolute;
+                width: 0;
+                height: 0;
+                top: 50%;
+                left: 54%;
+                border-top: 10px solid transparent;
+                border-bottom: 10px solid transparent;
+                border-left: 14px solid white;
+                transform: translate(-50%, -50%);
+            }
+
+            .audio__right-side {
+                display: flex;
+                flex-direction: column;
+                width: 60px;
+                color: #d2d4d5;
+                font-size: 12px;
+                line-height: 20px;
+            }
+
+            .right-side__time {
+                text-align: center;
+                margin: 5px 5px 0 5px;
+                height: 15px;
+            }
+
+            .right-side__speed {
+                -webkit-touch-callout: none;
+                user-select: none; 
+                -moz-user-select: none;
+                cursor: pointer;
+                height: 20px;
+                margin: 5px;
+                border-radius: 3px;
+                background-color: #f0f0ef;
+                text-align: center;
+            }
+        </style>
+        <script type="text/javascript">
+            window.onload = function () {
+                const wave = document.getElementById("wave");
+                const waveSlider = document.getElementById("waveSlider");
+                const wavePath = document.getElementById("wavePath");
+                const audioBtn = document.getElementById("buttonPause");
+                const speedBtn = document.getElementById("speed");
+
+                const DISTANCE = 4;
+                const FULL_HEIGHT = wave.offsetHeight;
+                const FULL_WIDTH = wave.offsetWidth;
+                const LINES_VALUE = FULL_WIDTH / DISTANCE;
+
+                const randomTones = Array.from(
+                    { length: Math.round(LINES_VALUE)  },
+                    Math.random
+                );
+
+                const generateWavePath = (tones, fullHeight = 1, distance) => {
+                    return tones
+                        .map((h, i) => {
+                            let x1 = 1;
+                            let y1 = 0;
+                            let downShift = 1;
+                            let upShift = 1;
+                            let x2 = 1;
+                            let y2 = 0;
+                            const halfHeight = fullHeight / 2;
+                            const fullShift = h * fullHeight;
+
+                            upShift += fullShift / 2;
+                            downShift += fullShift / 2;
+
+                            y1 += halfHeight - upShift;
+                            y2 += halfHeight + downShift;
+
+                            x1 += distance * i;
+                            x2 += distance * i;
+
+                            return `M${x1} ${y1}, ${x2} ${y2}`;
+                        })
+                        .join("");
+                };
+
+                const path = generateWavePath(randomTones, FULL_HEIGHT, DISTANCE);
+                wavePath.setAttribute("d", path);
+
+                const initSize = (left = 0, width = 100) => {
+                    waveSlider.style.left = left + '%';
+                    waveSlider.style.width = width + '%';
+                }
+
+                initSize()
+
+                const speeds = [1, 1.5, 2, 0.5];
+                let speedInx = 0;
+                let isStopped = false;
+                let isClicked = false;
+
+                const fillWave = (step = 0.3) => {
+                    const speed = speeds[speedInx];
+                    waveSlider.style.left =
+                        (parseFloat(waveSlider.style.left) + step*speed) + "%";
+                    waveSlider.style.width =
+                        (parseFloat(waveSlider.style.width) - step*speed) + "%";
+
+                    if (!isStopped) {
+                        if (parseInt(waveSlider.style.left) < 100) {
+                            requestAnimationFrame(() => fillWave(step));
+                        } else {
+                            stopFill()
+                        }
+
+                    }
+                };
+
+                const startFill = () => {
+                    isStopped = false;
+                    audioBtn.classList.remove("button--play");
+                    audioBtn.classList.add("button--pause");
+
+                    requestAnimationFrame(() => fillWave());
+                };
+
+                const stopFill = () => {
+                    initSize();
+                    isStopped = true;
+                    audioBtn.classList.remove("button--pause");
+                    audioBtn.classList.add("button--play");
+                }
+
+                const pauseFill = () => {
+                    isStopped = true;
+
+                    audioBtn.classList.remove("button--pause");
+                    audioBtn.classList.add("button--play");
+                };
+
+                const onAudioBtnClick = () => {
+                    if (audioBtn.classList.contains("button--play")) {
+                        startFill();
+                    } else {
+                        pauseFill();
+                    }
+                };
+
+                
+                const onSpeedBtnClick = () => {
+                    speedInx = speedInx < speeds.length - 1 ? speedInx +=1 : 0;
+
+                    speedBtn.innerText = speeds[speedInx] + 'x'
+                };
+
+                const setWaveComplete = (percent) => {
+                    initSize(percent,  100 - percent);
+                }
+
+                const changeWave = (e) => {
+                    const bodyRect = document.body.getBoundingClientRect();
+                    const elemRect = e.target.getBoundingClientRect();
+                    
+                    const offsetX = e.target === waveSlider ? e.offsetX + (parseFloat( waveSlider.style.left) / 100) * FULL_WIDTH: e.offsetX;
+
+                    const clickPercent = (offsetX / FULL_WIDTH) * 100;
+                    
+                    setWaveComplete(clickPercent);
+                };
+
+
+                wave.onmousemove = (e) => isClicked && changeWave(e)
+                wave.onmousedown = (e) => (isClicked = true, changeWave(e));
+                wave.onmouseup = () => isClicked = false;
+                wave.onmouseleave = () => isClicked = false;
+
+                speedBtn.onclick = onSpeedBtnClick;
+                audioBtn.onclick = onAudioBtnClick;
+
+            };
+        </script>
+    </head>
+    <body>
+        <div class="audio">
+            <div class="audio__button-wrapper">
+                <div
+                    class="button-wrapper__button button--play"
+                    id="buttonPause"
+                ></div>
+            </div>
+            <div class="audio__wave-wrapper wave-wrapper">
+                <div id="wave" class="wave-wrapper__wave">
+                    <div class="wave--slider" id="waveSlider"></div>
+                    <svg class="wave--svg">
+                        <path id="wavePath" />
+                    </svg>
+                </div>
+            </div>
+            <div class="audio__right-side right-side">
+                <div class="right-side__time">23:30</div>
+                <div class="right-side__speed" id='speed'>1x</div>
+            </div>
+        </div>
+    </body>
+</html>
